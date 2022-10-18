@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AuthWithJwt.Controllers
 {
@@ -14,10 +15,24 @@ namespace AuthWithJwt.Controllers
         public static User user = new User();
 
         private readonly IConfiguration _config;
+        private readonly IUserService _userService;
 
-        public AuthController(IConfiguration config)
+        public AuthController(IConfiguration config, IUserService userService)
         {
             _config = config;
+            _userService = userService;
+        }
+
+        [HttpGet("me"), Authorize]
+        public ActionResult<string> GetMe()
+        {
+            var userName = _userService.GetMyName();
+            var role = _userService.GetMyRole();
+            return Ok(new {userName, role});
+
+            // var userName2 = User.FindFirstValue(ClaimTypes.Name);
+            // var role = User.FindFirstValue(ClaimTypes.Role);
+            // return Ok(new {userName, userName2, role});
         }
 
         [HttpPost("register")]
@@ -52,7 +67,8 @@ namespace AuthWithJwt.Controllers
         {
             List<Claim> claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.Username)
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, "Admin")
             };
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
